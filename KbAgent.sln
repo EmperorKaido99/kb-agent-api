@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{964BEE02-34EF-4307-B7FC-5F91279CDC02}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KbAgent.Api", "src\KbAgent.Api\KbAgent.Api.csproj", "{1BCA5206-E5A7-42AA-8A33-76EC5B05482C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KbAgent.Api.Tests", "src\KbAgent.Api.Tests\KbAgent.Api.Tests.csproj", "{FA0E6C5B-771B-41FE-9C10-D1D445ECF8F0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1BCA5206-E5A7-42AA-8A33-76EC5B05482C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BCA5206-E5A7-42AA-8A33-76EC5B05482C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BCA5206-E5A7-42AA-8A33-76EC5B05482C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BCA5206-E5A7-42AA-8A33-76EC5B05482C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA0E6C5B-771B-41FE-9C10-D1D445ECF8F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA0E6C5B-771B-41FE-9C10-D1D445ECF8F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA0E6C5B-771B-41FE-9C10-D1D445ECF8F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA0E6C5B-771B-41FE-9C10-D1D445ECF8F0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1BCA5206-E5A7-42AA-8A33-76EC5B05482C} = {964BEE02-34EF-4307-B7FC-5F91279CDC02}
+		{FA0E6C5B-771B-41FE-9C10-D1D445ECF8F0} = {964BEE02-34EF-4307-B7FC-5F91279CDC02}
+	EndGlobalSection
+EndGlobal

@@ -17,4 +17,4 @@ Track the status of all TASK tasks across sessions. Updated at **every phase tra
 
 | Ticket | Title | Status | Last Updated | Notes |
 |--------|-------|--------|--------------|-------|
-| TASK-0001 | Build .NET Knowledge-Base Agent API (Phase 1 PoC) | 📋 Awaiting Approval | 2026-08-05 | Plan ready — see memorybank/activeTasks/TASK-0001.md |
+| TASK-0001 | Build .NET Knowledge-Base Agent API (Phase 1 PoC) | 🧪 Testing | 2026-08-05 | Build+tests green; awaiting human verification (Docker build & live Ollama/Qdrant untested here) |
