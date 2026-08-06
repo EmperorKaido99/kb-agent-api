@@ -32,6 +32,10 @@ public sealed class RagService(
     {
         await vectorStore.EnsureCollectionAsync(ct);
 
+        // Delete any chunks from a previous ingest of this source first, so re-ingesting (e.g. from the
+        // scheduled folder scan picking up an edited file) replaces rather than duplicates them.
+        await vectorStore.DeleteBySourceAsync(source, ct);
+
         var backend = await loadBalancer.GetAvailableBackendAsync(ct);
         var chunkTexts = chunkingService.Chunk(text);
 

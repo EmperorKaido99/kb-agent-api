@@ -2,6 +2,7 @@ using KbAgent.Api.Configuration;
 using KbAgent.Api.Middleware;
 using KbAgent.Api.Models;
 using KbAgent.Api.Services;
+using KbAgent.Api.Services.Extraction;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
 
@@ -12,6 +13,8 @@ builder.Services.Configure<QdrantOptions>(builder.Configuration.GetSection(Qdran
 builder.Services.Configure<ChunkingOptions>(builder.Configuration.GetSection(ChunkingOptions.SectionName));
 builder.Services.Configure<RagOptions>(builder.Configuration.GetSection(RagOptions.SectionName));
 builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
+builder.Services.Configure<KnowledgeFolderOptions>(builder.Configuration.GetSection(KnowledgeFolderOptions.SectionName));
+builder.Services.Configure<OcrOptions>(builder.Configuration.GetSection(OcrOptions.SectionName));
 
 builder.Services.AddHttpClient<IOllamaClient, OllamaClient>((sp, client) =>
 {
@@ -28,6 +31,16 @@ builder.Services.AddSingleton<IVectorStore, QdrantVectorStore>();
 builder.Services.AddSingleton<IChunkingService, ChunkingService>();
 builder.Services.AddSingleton<IOllamaLoadBalancer, OllamaLoadBalancer>();
 builder.Services.AddScoped<IRagService, RagService>();
+
+builder.Services.AddSingleton<IDocumentTextExtractor, PlainTextExtractor>();
+builder.Services.AddSingleton<IDocumentTextExtractor, WordTextExtractor>();
+builder.Services.AddSingleton<IDocumentTextExtractor, PowerPointTextExtractor>();
+builder.Services.AddSingleton<IDocumentTextExtractor, ExcelTextExtractor>();
+builder.Services.AddSingleton<IDocumentTextExtractor, PdfTextExtractor>();
+builder.Services.AddSingleton<IDocumentTextExtractor, ImageOcrTextExtractor>();
+builder.Services.AddSingleton<IDocumentTextExtractorFactory, DocumentTextExtractorFactory>();
+builder.Services.AddSingleton<IIngestStateStore, JsonFileIngestStateStore>();
+builder.Services.AddHostedService<KnowledgeFolderIngestService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

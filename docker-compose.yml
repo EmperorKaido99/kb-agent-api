@@ -10,6 +10,12 @@ services:
       - Ollama__BackendBaseUrls__1=http://laptop2.local:11434
       - Qdrant__Host=qdrant
       - ApiKey__Key=${KB_AGENT_API_KEY:-}
+      - KnowledgeFolder__Path=/data/knowledge-base
+      - KnowledgeFolder__ScanIntervalMinutes=${KB_SCAN_INTERVAL_MINUTES:-15}
+    volumes:
+      # Point KB_FOLDER_PATH at your real documents folder, e.g. a OneDrive/Google Drive desktop-sync mount
+      # (both are just local paths from here — no cloud API integration needed).
+      - ${KB_FOLDER_PATH:-./knowledge-base}:/data/knowledge-base:ro
     depends_on:
       - qdrant
     restart: unless-stopped

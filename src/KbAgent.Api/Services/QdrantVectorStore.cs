@@ -39,6 +39,11 @@ public sealed class QdrantVectorStore(QdrantClient client, IOptions<QdrantOption
         await client.UpsertAsync(_options.CollectionName, points, cancellationToken: ct);
     }
 
+    public async Task DeleteBySourceAsync(string source, CancellationToken ct = default)
+    {
+        await client.DeleteAsync(_options.CollectionName, Conditions.MatchKeyword("source", source), cancellationToken: ct);
+    }
+
     public async Task<IReadOnlyList<SourceSnippet>> SearchAsync(float[] queryEmbedding, int topK, CancellationToken ct = default)
     {
         var results = await client.QueryAsync(

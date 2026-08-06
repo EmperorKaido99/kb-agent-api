@@ -65,6 +65,7 @@ public class RagServiceTests
         Assert.Equal("policy.md", result.Source);
         Assert.Equal(2, result.ChunkCount);
         vectorStore.Verify(v => v.EnsureCollectionAsync(It.IsAny<CancellationToken>()), Times.Once);
+        vectorStore.Verify(v => v.DeleteBySourceAsync("policy.md", It.IsAny<CancellationToken>()), Times.Once);
         vectorStore.Verify(
             v => v.UpsertChunksAsync(
                 It.Is<IReadOnlyList<DocumentChunk>>(chunks =>

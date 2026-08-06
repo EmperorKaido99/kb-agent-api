@@ -9,6 +9,9 @@ Loads a source document into the knowledge base so [RAG Ask](./rag-ask.md) can r
 - Every chunk is embedded individually and stored with its source name and text as payload, so `RAG Ask` can cite
   which document an answer came from.
 - The Qdrant collection is created on first use if it doesn't already exist (`EnsureCollectionAsync`).
+- Re-ingesting a source (same source name) **deletes its previously stored chunks first**, so re-ingestion is
+  idempotent — no duplicate chunks in Qdrant, whether triggered manually or by the
+  [knowledge folder watcher](./knowledge-folder-watcher.md).
 - If chunking produces zero chunks (e.g. blank text), nothing is embedded or upserted — `chunkCount: 0` is
   returned rather than erroring.
 - `/api/*` requires a matching `X-Api-Key` header whenever `ApiKey__Key` is configured.
@@ -17,6 +20,7 @@ Loads a source document into the knowledge base so [RAG Ask](./rag-ask.md) can r
 
 ```
 Client → POST /api/ingest → RagService.IngestAsync → QdrantVectorStore.EnsureCollectionAsync
+                                                     → QdrantVectorStore.DeleteBySourceAsync(source)
                                                      → ChunkingService.Chunk(text)
                                                      → OllamaClient.EmbedAsync(chunk) [per chunk]
                                                      → QdrantVectorStore.UpsertChunksAsync
@@ -24,9 +28,12 @@ Client → POST /api/ingest → RagService.IngestAsync → QdrantVectorStore.Ens
 ```
 
 ### Step-by-step:
-1. Client sends `POST /api/ingest` with `{ "source": "...", "text": "..." }`.
+1. Client sends `POST /api/ingest` with `{ "source": "...", "text": "..." }` (or the
+   [folder watcher](./knowledge-folder-watcher.md) calls the same method internally after extracting text from a
+   PowerPoint/Word/Excel/PDF/image file).
 2. `ApiKeyAuthMiddleware` validates `X-Api-Key` (if a key is configured).
-3. `RagService.IngestAsync` ensures the Qdrant collection exists.
+3. `RagService.IngestAsync` ensures the Qdrant collection exists, then deletes any chunks already stored for this
+   `source` (via a Qdrant payload-filter delete).
 4. `OllamaLoadBalancer` picks one healthy backend for the whole ingest request.
 5. `ChunkingService.Chunk` splits `text` into overlapping chunks.
 6. Each chunk is embedded via that backend's `/api/embeddings`.
@@ -48,13 +55,15 @@ Client → POST /api/ingest → RagService.IngestAsync → QdrantVectorStore.Ens
 | `src/KbAgent.Api/Program.cs` | Maps `POST /api/ingest` |
 | `src/KbAgent.Api/Services/RagService.cs` | Orchestrates the ingest flow |
 | `src/KbAgent.Api/Services/ChunkingService.cs` | Splits text into overlapping chunks |
-| `src/KbAgent.Api/Services/QdrantVectorStore.cs` | Collection creation + upsert |
+| `src/KbAgent.Api/Services/QdrantVectorStore.cs` | Collection creation, delete-by-source, upsert |
 
 ## Edge Cases & Gotchas
-- Re-ingesting the same source with the same text produces new chunk IDs (random GUIDs) each time — there's no
-  dedup/upsert-by-source-name yet, so repeated ingestion of the same document duplicates chunks in Qdrant.
-- Scheduled re-indexing (roadmap Step 5, cron) is not implemented — ingestion is currently on-demand only via this
-  endpoint.
+- Chunk IDs are still random GUIDs, but the delete-by-source step before upsert means this doesn't matter for
+  duplication — old points for that source are gone before the new ones are written.
+- If a file shrinks between ingests (fewer chunks than before), this is still correct: delete-by-source removes
+  *all* old chunks for that source before the (smaller) new set is upserted, so there are no orphaned old chunks.
 
 ## Related Components
 - [rag-ask.md](./rag-ask.md) — consumes what this flow stores
+- [knowledge-folder-watcher.md](./knowledge-folder-watcher.md) — automatically drives this flow from a folder of
+  PowerPoint/Word/Excel/PDF/image files on a schedule
