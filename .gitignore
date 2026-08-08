@@ -4,3 +4,4 @@ obj/
 .vs/
 knowledge-folder-state.json
 api-users.json
+.env
