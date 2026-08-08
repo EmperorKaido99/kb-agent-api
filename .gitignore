@@ -3,3 +3,4 @@ obj/
 *.user
 .vs/
 knowledge-folder-state.json
+api-users.json

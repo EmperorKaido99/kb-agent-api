@@ -33,7 +33,7 @@ Configuration uses the standard ASP.NET Core `Section__Key` convention (env vars
 | `Chunking__ChunkSizeChars` | Characters per chunk | No | `1000` |
 | `Chunking__ChunkOverlapChars` | Overlap between chunks | No | `200` |
 | `Rag__TopK` | Number of chunks retrieved per question | No | `4` |
-| `ApiKey__Key` | Required `X-Api-Key` header value for `/api/*`. Empty disables auth (local dev only) | No | `""` |
+| `ApiUsers__FilePath` | Where username→token-hash credentials are stored. No users in the file = auth disabled (local dev only) | No | `api-users.json` |
 | `KnowledgeFolder__Path` | Local folder scanned for documents (plain folder, or a OneDrive/Google Drive desktop-sync mount — both are just paths). Empty disables folder scanning | No | `""` (disabled) |
 | `KnowledgeFolder__ScanIntervalMinutes` | How often the folder is rescanned for new/changed files | No | `15` |
 | `KnowledgeFolder__StateFilePath` | Where per-file fingerprints are persisted between scans | No | `knowledge-folder-state.json` |
@@ -55,6 +55,30 @@ docker compose up --build
 The API listens on `http://localhost:8080` (or the `dotnet run` dev port). Point `Ollama__BackendBaseUrls` at your
 two laptops' Ollama instances (default Ollama port is `11434`) before using it for real.
 
+### Creating API users
+
+`/api/*` requires HTTP Basic Auth (`Authorization: Basic base64(username:token)`) once at least one user exists.
+With no users created, auth is disabled — fine for local dev, not for anything exposed to the internet.
+
+```bash
+# Local (dotnet run):
+cd src/KbAgent.Api
+dotnet run -- create-user alice
+
+# Docker Compose (writes into the api-users-data volume the running container also reads):
+docker compose run --rm api dotnet KbAgent.Api.dll create-user alice
+```
+
+This prints the plaintext token exactly once — copy it immediately, only its hash is stored. Use it as:
+
+```bash
+curl -u alice:<token> -H "Content-Type: application/json" \
+  -d '{"question":"..."}' http://localhost:8080/api/ask
+```
+
+Run the command again with a different username to add more users; there's no delete/revoke command yet —
+remove an entry from `api-users.json` (or the `api-users-data` volume) directly to revoke it.
+
 ### Populating the knowledge base from a folder
 
 Set `KB_FOLDER_PATH` before `docker compose up` to point at your real documents — including a folder synced by
@@ -69,6 +93,8 @@ picks up new/changed files automatically on its scan interval (`KnowledgeFolder_
 minutes). Without `KB_FOLDER_PATH` set, Docker Compose defaults to the repo's `./knowledge-base` folder.
 
 ### Try it
+
+Add `-u <username>:<token>` to these if you've created an API user (see above) — otherwise auth is disabled.
 
 ```bash
 # Ingest a document

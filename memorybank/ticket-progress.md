@@ -19,3 +19,4 @@ Track the status of all TASK tasks across sessions. Updated at **every phase tra
 |--------|-------|--------|--------------|-------|
 | TASK-0001 | Build .NET Knowledge-Base Agent API (Phase 1 PoC) | 🧪 Testing | 2026-08-05 | Build+tests green; awaiting human verification (Docker build & live Ollama/Qdrant untested here) |
 | TASK-0002 | Multi-format ingestion (PPTX/DOCX/PDF/XLSX + image OCR) + folder watcher | 🧪 Testing | 2026-08-06 | Build+tests green, real-file extraction manually verified; awaiting human verification against real documents |
+| TASK-0003 | Per-user API authentication (username + token) | 🧪 Testing | 2026-08-06 | Build+tests green, auth flow verified live; awaiting human verification over HTTPS/real deployment |

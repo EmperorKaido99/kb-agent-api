@@ -1,36 +1,36 @@
-using System.Security.Cryptography;
-using System.Text;
-using KbAgent.Api.Configuration;
-using Microsoft.Extensions.Options;
+using KbAgent.Api.Services;
 
 namespace KbAgent.Api.Middleware;
 
-/// <summary>Requires a matching X-Api-Key header when an API key is configured; a no-op when it isn't (local dev).</summary>
+/// <summary>
+/// Requires valid `Authorization: Basic base64(username:token)` credentials matching a stored user. If no users
+/// are configured (empty store), auth is a no-op (local dev convenience). Create users via
+/// `dotnet run -- create-user &lt;username&gt;`.
+/// </summary>
 public sealed class ApiKeyAuthMiddleware(RequestDelegate next)
 {
-    private const string HeaderName = "X-Api-Key";
-
-    public async Task InvokeAsync(HttpContext context, IOptions<ApiKeyOptions> options)
+    public async Task InvokeAsync(HttpContext context, IApiUserStore userStore)
     {
-        var configuredKey = options.Value.Key;
-
-        if (string.IsNullOrEmpty(configuredKey))
+        var users = await userStore.LoadAsync(context.RequestAborted);
+        if (users.Count == 0)
         {
             await next(context);
             return;
         }
 
-        var providedKey = context.Request.Headers[HeaderName].ToString();
-        if (!FixedTimeEquals(providedKey, configuredKey))
+        var authorized =
+            BasicAuthCredentialParser.TryParse(context.Request.Headers.Authorization, out var username, out var token) &&
+            users.TryGetValue(username, out var expectedHash) &&
+            ApiTokenHasher.FixedTimeEquals(ApiTokenHasher.Hash(token), expectedHash);
+
+        if (!authorized)
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Missing or invalid API key.");
+            context.Response.Headers.WWWAuthenticate = "Basic realm=\"KbAgent.Api\"";
+            await context.Response.WriteAsync("Missing or invalid credentials.");
             return;
         }
 
         await next(context);
     }
-
-    private static bool FixedTimeEquals(string a, string b) =>
-        CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(a), Encoding.UTF8.GetBytes(b));
 }

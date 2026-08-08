@@ -12,9 +12,16 @@ builder.Services.Configure<OllamaOptions>(builder.Configuration.GetSection(Ollam
 builder.Services.Configure<QdrantOptions>(builder.Configuration.GetSection(QdrantOptions.SectionName));
 builder.Services.Configure<ChunkingOptions>(builder.Configuration.GetSection(ChunkingOptions.SectionName));
 builder.Services.Configure<RagOptions>(builder.Configuration.GetSection(RagOptions.SectionName));
-builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
+builder.Services.Configure<ApiUsersOptions>(builder.Configuration.GetSection(ApiUsersOptions.SectionName));
 builder.Services.Configure<KnowledgeFolderOptions>(builder.Configuration.GetSection(KnowledgeFolderOptions.SectionName));
 builder.Services.Configure<OcrOptions>(builder.Configuration.GetSection(OcrOptions.SectionName));
+
+// `dotnet run -- create-user <username>` short-circuits before the web host starts — generates a token,
+// stores its hash, and prints the plaintext token once. No auth required to run this (it's a local CLI command).
+if (args.Length > 0 && string.Equals(args[0], "create-user", StringComparison.OrdinalIgnoreCase))
+{
+    return await RunCreateUserCommandAsync(args, builder.Configuration);
+}
 
 builder.Services.AddHttpClient<IOllamaClient, OllamaClient>((sp, client) =>
 {
@@ -41,6 +48,7 @@ builder.Services.AddSingleton<IDocumentTextExtractor, ImageOcrTextExtractor>();
 builder.Services.AddSingleton<IDocumentTextExtractorFactory, DocumentTextExtractorFactory>();
 builder.Services.AddSingleton<IIngestStateStore, JsonFileIngestStateStore>();
 builder.Services.AddHostedService<KnowledgeFolderIngestService>();
+builder.Services.AddSingleton<IApiUserStore, JsonFileApiUserStore>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -96,3 +104,32 @@ app.MapPost("/api/ingest", async (IngestRequest request, IRagService ragService,
 .WithName("Ingest");
 
 app.Run();
+return 0;
+
+static async Task<int> RunCreateUserCommandAsync(string[] args, IConfiguration configuration)
+{
+    if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]))
+    {
+        Console.Error.WriteLine("Usage: dotnet run -- create-user <username>");
+        return 1;
+    }
+
+    var username = args[1];
+    var usersOptions = configuration.GetSection(ApiUsersOptions.SectionName).Get<ApiUsersOptions>() ?? new ApiUsersOptions();
+    var store = new JsonFileApiUserStore(Options.Create(usersOptions));
+
+    var users = new Dictionary<string, string>(await store.LoadAsync());
+    var (rawToken, tokenHash) = ApiTokenHasher.GenerateToken();
+    users[username] = tokenHash;
+    await store.SaveAsync(users);
+
+    Console.WriteLine($"User '{username}' created (credential file: {usersOptions.FilePath}).");
+    Console.WriteLine();
+    Console.WriteLine("Token — save this now, it will not be shown again:");
+    Console.WriteLine(rawToken);
+    Console.WriteLine();
+    Console.WriteLine("Use it as HTTP Basic Auth:");
+    Console.WriteLine($"  curl -u {username}:{rawToken} -H \"Content-Type: application/json\" \\");
+    Console.WriteLine("    -d '{\"question\":\"...\"}' http://localhost:8080/api/ask");
+    return 0;
+}

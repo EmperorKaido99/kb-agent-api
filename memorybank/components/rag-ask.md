@@ -11,7 +11,7 @@ proof-of-concept flow from the Phase 1 roadmap.
   general knowledge, so the caller can distinguish a grounded answer from an ungrounded one via the `sources` list.
 - A single request uses one Ollama backend for both the question embedding and the answer generation (picked once
   per request), so the two calls stay consistent with each other.
-- `/api/*` requires a matching `X-Api-Key` header whenever `ApiKey__Key` is configured.
+- `/api/*` requires HTTP Basic Auth (username + token) whenever at least one user exists in `ApiUsers__FilePath`.
 
 ## Data Flow
 
@@ -25,7 +25,7 @@ Client → POST /api/ask → RagService.AskAsync → OllamaLoadBalancer (pick he
 
 ### Step-by-step:
 1. Client sends `POST /api/ask` with `{ "question": "..." }`.
-2. `ApiKeyAuthMiddleware` validates `X-Api-Key` (if a key is configured).
+2. `ApiKeyAuthMiddleware` validates `Authorization: Basic` credentials against the user store (if any users exist).
 3. `RagService.AskAsync` asks `OllamaLoadBalancer` for a healthy backend (round-robin, skips unhealthy ones).
 4. The question is embedded via that backend's `/api/embeddings`.
 5. `QdrantVectorStore.SearchAsync` retrieves the top-K most similar chunks (`Rag__TopK`, default 4).
@@ -38,7 +38,7 @@ Client → POST /api/ask → RagService.AskAsync → OllamaLoadBalancer (pick he
 | Field | Rule | Where Enforced | Error Message |
 |-------|------|----------------|---------------|
 | question | Must not be empty/whitespace | API (`/api/ask` handler) | "Question must not be empty." (400) |
-| X-Api-Key | Must match configured `ApiKey__Key` when one is set | `ApiKeyAuthMiddleware` | "Missing or invalid API key." (401) |
+| Authorization | Must be `Basic base64(username:token)` matching a stored user, when any users exist | `ApiKeyAuthMiddleware` | "Missing or invalid credentials." (401) |
 
 ## Key Files
 

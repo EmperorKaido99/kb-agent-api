@@ -7,7 +7,7 @@
 | Grounded question answering (`POST /api/ask`) | Answers a question using RAG over the internal knowledge base, grounded via Qdrant retrieval + Ollama generation | ✅ Implemented |
 | Knowledge base ingestion (`POST /api/ingest`) | Chunks, embeds, and stores a source document into the vector store | ✅ Implemented |
 | Ollama load balancing | Routes requests round-robin across configured Ollama backends (the two laptops), skipping unhealthy ones | ✅ Implemented |
-| API key authentication | Protects `/api/*` with an `X-Api-Key` header when a key is configured | ✅ Implemented |
+| Per-user API authentication | Protects `/api/*` with HTTP Basic Auth (username + token) against a hashed credential store; `dotnet run -- create-user <username>` creates credentials. No users = auth disabled (local dev) | ✅ Implemented |
 | Health check (`GET /health`) | Reports API status and per-backend Ollama health | ✅ Implemented |
 | Dockerized deployment | `docker-compose.yml` stands up the API + Qdrant | ✅ Implemented |
 | Multi-format document ingestion | Extracts text from `.docx`, `.pptx`, `.xlsx`, `.pdf`, `.txt`/`.md`, and OCRs standalone images (`.png`/`.jpg`/`.jpeg`/`.bmp`/`.tiff`) via Tesseract | ✅ Implemented |

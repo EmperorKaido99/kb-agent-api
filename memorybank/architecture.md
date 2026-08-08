@@ -7,7 +7,7 @@ kb-agent-api/
 ├── src/
 │   ├── KbAgent.Api/              ASP.NET Core 8 minimal-API project (the gateway API)
 │   │   ├── Program.cs            DI wiring, middleware pipeline, endpoint mapping
-│   │   ├── Configuration/        Strongly-typed options (Ollama, Qdrant, Chunking, Rag, ApiKey, KnowledgeFolder, Ocr)
+│   │   ├── Configuration/        Strongly-typed options (Ollama, Qdrant, Chunking, Rag, ApiUsers, KnowledgeFolder, Ocr)
 │   │   ├── Models/                Request/response records
 │   │   ├── Services/              OllamaClient, OllamaLoadBalancer, QdrantVectorStore, ChunkingService, RagService,
 │   │   │                          KnowledgeFolderIngestService, JsonFileIngestStateStore
@@ -31,7 +31,9 @@ kb-agent-api/
 | `ChunkingService` | Splits raw text into overlapping character chunks for embedding |
 | `RagService` | Orchestrates both flows: Ask (embed → search → prompt → generate) and Ingest (delete old chunks →
   chunk → embed → upsert) |
-| `ApiKeyAuthMiddleware` | Validates `X-Api-Key` on `/api/*` when a key is configured |
+| `ApiKeyAuthMiddleware` | Validates `Authorization: Basic` credentials on `/api/*` against `IApiUserStore` when at least one user exists |
+| `ApiTokenHasher` / `BasicAuthCredentialParser` | Token generation/hashing and pure Basic-Auth header parsing (both unit-testable without HTTP plumbing) |
+| `JsonFileApiUserStore` | Persists username → token-hash pairs to a JSON file; created via `dotnet run -- create-user <username>` |
 | `Services/Extraction/*` | `IDocumentTextExtractor` per format (Word/PowerPoint/Excel via OOXML SDK & ClosedXML,
   PDF via PdfPig, images via the Tesseract CLI) + `DocumentTextExtractorFactory` dispatching by file extension |
 | `KnowledgeFolderIngestService` | `BackgroundService`: timer-driven recursive scan of a configured folder,
@@ -81,9 +83,9 @@ Timer tick → KnowledgeFolderIngestService.ScanOnceAsync
 `docker-compose.yml` runs the API and Qdrant as containers, and mounts a host folder (`KB_FOLDER_PATH`, default
 `./knowledge-base`) read-only into the API container for `KnowledgeFolderIngestService` to scan — this can be a
 plain folder or a OneDrive/Google Drive desktop-sync mount, both are just local paths from the container's
-perspective. The Dockerfile installs the Tesseract OCR engine (`apt-get install tesseract-ocr`) for image text
-extraction; running outside Docker requires Tesseract installed separately on the host, and OCR is skipped
-gracefully (logged, not a crash) if it isn't found. A reverse proxy (Nginx/Traefik) and Cloudflare Tunnel sit in
-front for external exposure — those are infra/ops concerns outside this repo, but the API supports them via
-`ApiKeyAuthMiddleware` (API-key auth) and by not hard-redirecting to HTTPS outside Development (TLS is terminated
-by the reverse proxy).
+perspective. A named volume (`api-users-data`) persists `api-users.json` across container rebuilds. The Dockerfile
+installs the Tesseract OCR engine (`apt-get install tesseract-ocr`) for image text extraction; running outside
+Docker requires Tesseract installed separately on the host, and OCR is skipped gracefully (logged, not a crash) if
+it isn't found. A reverse proxy (Nginx/Traefik) and Cloudflare Tunnel sit in front for external exposure — those
+are infra/ops concerns outside this repo, but the API supports them via `ApiKeyAuthMiddleware` (per-user Basic
+Auth) and by not hard-redirecting to HTTPS outside Development (TLS is terminated by the reverse proxy).

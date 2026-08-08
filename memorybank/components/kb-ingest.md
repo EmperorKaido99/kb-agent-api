@@ -14,7 +14,7 @@ Loads a source document into the knowledge base so [RAG Ask](./rag-ask.md) can r
   [knowledge folder watcher](./knowledge-folder-watcher.md).
 - If chunking produces zero chunks (e.g. blank text), nothing is embedded or upserted — `chunkCount: 0` is
   returned rather than erroring.
-- `/api/*` requires a matching `X-Api-Key` header whenever `ApiKey__Key` is configured.
+- `/api/*` requires HTTP Basic Auth (username + token) whenever at least one user exists in `ApiUsers__FilePath`.
 
 ## Data Flow
 
@@ -31,7 +31,7 @@ Client → POST /api/ingest → RagService.IngestAsync → QdrantVectorStore.Ens
 1. Client sends `POST /api/ingest` with `{ "source": "...", "text": "..." }` (or the
    [folder watcher](./knowledge-folder-watcher.md) calls the same method internally after extracting text from a
    PowerPoint/Word/Excel/PDF/image file).
-2. `ApiKeyAuthMiddleware` validates `X-Api-Key` (if a key is configured).
+2. `ApiKeyAuthMiddleware` validates `Authorization: Basic` credentials against the user store (if any users exist).
 3. `RagService.IngestAsync` ensures the Qdrant collection exists, then deletes any chunks already stored for this
    `source` (via a Qdrant payload-filter delete).
 4. `OllamaLoadBalancer` picks one healthy backend for the whole ingest request.
@@ -46,7 +46,7 @@ Client → POST /api/ingest → RagService.IngestAsync → QdrantVectorStore.Ens
 |-------|------|----------------|---------------|
 | source | Must not be empty/whitespace | API (`/api/ingest` handler) | "Source and text must not be empty." (400) |
 | text | Must not be empty/whitespace | API (`/api/ingest` handler) | "Source and text must not be empty." (400) |
-| X-Api-Key | Must match configured `ApiKey__Key` when one is set | `ApiKeyAuthMiddleware` | "Missing or invalid API key." (401) |
+| Authorization | Must be `Basic base64(username:token)` matching a stored user, when any users exist | `ApiKeyAuthMiddleware` | "Missing or invalid credentials." (401) |
 
 ## Key Files
 
